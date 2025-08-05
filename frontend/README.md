@@ -50,8 +50,8 @@ CLERK_SECRET_KEY=your_clerk_secret_key
 NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in
 NEXT_PUBLIC_CLERK_SIGN_UP_URL=/sign-up
 
-# API Configuration (optional)
-NEXT_PUBLIC_API_URL=http://localhost:8000
+# API Configuration (replace with your deployed backend URL)
+NEXT_PUBLIC_API_URL=https://your-render-app-name.onrender.com
 ```
 
 ### 3. Run Development Server

@@ -28,9 +28,15 @@ app = FastAPI(
 # This allows your frontend (running on a different domain/port) to communicate with this backend.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production, restrict this to your frontend's domain
+    allow_origins=[
+        "http://localhost:3000",  # For local development
+        "https://*.vercel.app",   # Allow all Vercel deployments
+        "https://*.netlify.app",  # Allow all Netlify deployments
+        "https://*.onrender.com", # Allow all Render deployments
+        "*"  # Temporarily allow all origins for debugging - remove this in production
+    ],
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "OPTIONS"],  # Added OPTIONS method
     allow_headers=["*"],
 )
 
@@ -61,7 +67,7 @@ except Exception as e:
     retriever = None
 
 # Initialize the LLM
-llm = ChatGoogleGenerativeAI(model="gemini-2.5-pro", temperature=0.1, convert_system_message_to_human=True)
+llm = ChatGoogleGenerativeAI(model="gemini-2.5-pro", temperature=0.1,)
 
 # Define the prompt template
 prompt_template = """
@@ -99,6 +105,11 @@ class ChatRequest(BaseModel):
 def read_root():
     """A simple endpoint to check if the API is running."""
     return {"status": "API is running"}
+
+@app.options("/api/chat")
+async def chat_options():
+    """Handle OPTIONS preflight request for CORS"""
+    return {"message": "OK"}
 
 @app.post("/api/chat")
 async def chat(request: ChatRequest, current_user: Optional[dict] = Depends(get_current_user_optional)):
