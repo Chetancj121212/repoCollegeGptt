@@ -26,7 +26,7 @@ load_dotenv()
 AZURE_STORAGE_CONNECTION_STRING = os.getenv("AZURE_STORAGE_CONNECTION_STRING")
 AZURE_CONTAINER_NAME = os.getenv("AZURE_CONTAINER_NAME", "college-data")
 # Name for the collection in Astra DB
-ASTRA_DB_COLLECTION_NAME = "rag_chatbot_collection"
+ASTRA_DB_COLLECTION_NAME = os.getenv("ASTRA_DB_COLLECTION_NAME", "rag_chatbot_collection")
 
 # --- DOCUMENT PROCESSING ---
 

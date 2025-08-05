@@ -1,8 +1,12 @@
 import os
+import warnings
 from dotenv import load_dotenv
 
 # Load environment variables FIRST before any other imports
 load_dotenv()
+
+# Suppress specific HuggingFace deprecation warnings
+warnings.filterwarnings("ignore", message=".*encoder_attention_mask.*", category=FutureWarning)
 
 from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -31,13 +35,14 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:3000",  # For local development
+        "https://collegegptfrontend-rgk5ca68m-chetan-jharbades-projects.vercel.app",  # Your current Vercel URL
+        "https://collegegptfrontend-*.vercel.app",  # Allow all your Vercel deployments
         "https://*.vercel.app",   # Allow all Vercel deployments
         "https://*.netlify.app",  # Allow all Netlify deployments
         "https://*.onrender.com", # Allow all Render deployments
-        "*"  # Temporarily allow all origins for debugging - remove this in production
     ],
     allow_credentials=True,
-    allow_methods=["GET", "POST", "OPTIONS"],  # Added OPTIONS method
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],  # Added more methods
     allow_headers=["*"],
 )
 
@@ -109,7 +114,18 @@ class ChatRequest(BaseModel):
 @app.get("/")
 def read_root():
     """A simple endpoint to check if the API is running."""
-    return {"status": "API is running"}
+    return {"status": "API is running", "timestamp": "2025-08-06", "embeddings": "Hugging Face"}
+
+@app.get("/health")
+def health_check():
+    """Health check endpoint with more details."""
+    return {
+        "status": "healthy",
+        "vector_store_initialized": vector_store is not None,
+        "retriever_initialized": retriever is not None,
+        "chain_initialized": chain is not None,
+        "embedding_model": "sentence-transformers/all-MiniLM-L6-v2"
+    }
 
 @app.options("/api/chat")
 async def chat_options():
@@ -122,8 +138,12 @@ async def chat(request: ChatRequest, current_user: Optional[dict] = Depends(get_
     Handles chat requests. Receives a question, uses the RAG chain to generate an answer,
     and returns the answer. Now supports authenticated users.
     """
+    print(f"Received chat request: {request.question}")  # Debug logging
+    
     if not retriever or not chain:
-        return {"error": "Vector store or chain is not initialized. Please check your API keys and Astra DB connection."}
+        error_msg = "Vector store or chain is not initialized. Please check your API keys and Astra DB connection."
+        print(f"Error: {error_msg}")
+        return {"error": error_msg}
     
     try:
         # Enhance the prompt with user context if authenticated
@@ -131,9 +151,11 @@ async def chat(request: ChatRequest, current_user: Optional[dict] = Depends(get_
         if current_user:
             user_name = request.user_name or current_user.get('given_name', 'there')
             user_context = f"The user's name is {user_name}. "
+            print(f"Authenticated user: {user_name}")
         
         # Create a personalized prompt
         personalized_question = f"{user_context}Question: {request.question}"
+        print(f"Processing question: {personalized_question}")
         
         # Get the answer from the RAG chain
         answer = chain.invoke(personalized_question)
