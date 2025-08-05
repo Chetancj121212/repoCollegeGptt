@@ -8,7 +8,7 @@ from langchain_community.document_loaders import (
     UnstructuredPowerPointLoader,
 )
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain_google_genai import GoogleGenerativeAIEmbeddings
+from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_astradb import AstraDBVectorStore
 import pytesseract
 
@@ -125,8 +125,12 @@ def create_vector_store(chunks):
     """
     print("\nCreating and storing in Astra DB vector store...")
     
-    # Initialize the embedding model from Google
-    embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001")
+    # Initialize the embedding model from Hugging Face (free, no API key required)
+    embeddings = HuggingFaceEmbeddings(
+        model_name="sentence-transformers/all-MiniLM-L6-v2",  # Free, efficient model
+        model_kwargs={'device': 'cpu'},  # Use CPU for better compatibility
+        encode_kwargs={'normalize_embeddings': True}  # Normalize embeddings for better similarity search
+    )
     
     # Initialize the Astra DB vector store
     vstore = AstraDBVectorStore(

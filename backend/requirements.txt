@@ -4,6 +4,8 @@ gunicorn
 python-dotenv
 langchain
 langchain-google-genai
+langchain-huggingface
+sentence-transformers
 azure-storage-blob
 python-pptx
 pytesseract

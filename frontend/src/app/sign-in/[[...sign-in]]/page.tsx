@@ -21,7 +21,7 @@ export default function Page() {
       setCurrentFeature((prev) => (prev + 1) % features.length);
     }, 3000);
     return () => clearInterval(interval);
-  }, []);
+  }, [features.length]);
 
   if (!mounted) return null;
 
