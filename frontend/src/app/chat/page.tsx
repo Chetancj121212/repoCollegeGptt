@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useUser } from "@clerk/nextjs";
+import { useUser, useAuth } from "@clerk/nextjs";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
@@ -12,6 +12,7 @@ export default function ChatPage() {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const { user } = useUser();
+  const { getToken } = useAuth();
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
   const scrollToBottom = () => {
@@ -31,36 +32,45 @@ export default function ChatPage() {
     setLoading(true);
 
     try {
+      // Get the authentication token
+      const token = await getToken();
+
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+
+      // Add authorization header if token is available
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
+
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/api/chat`,
         {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ query: input }),
+          headers,
+          body: JSON.stringify({
+            question: input, // Changed from 'query' to 'question' to match backend
+            user_name: user?.firstName || user?.fullName || "User",
+          }),
         }
       );
 
-      if (!response.body) throw new Error("No response body");
-
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder("utf-8");
-      let assistantMessage = "";
-
-      while (true) {
-        const { value, done } = await reader.read();
-        if (done) break;
-        const chunk = decoder.decode(value, { stream: true });
-        assistantMessage += chunk;
-        setMessages((prev) => {
-          const updated = [...prev];
-          if (updated[updated.length - 1]?.role === "assistant") {
-            updated[updated.length - 1].content = assistantMessage;
-          } else {
-            updated.push({ role: "assistant", content: assistantMessage });
-          }
-          return updated;
-        });
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(
+          errorData.detail || errorData.error || `HTTP ${response.status}`
+        );
       }
+
+      const data = await response.json();
+      const assistantMessage =
+        data.answer || "I'm sorry, I couldn't process that request.";
+
+      setMessages((prev) => [
+        ...prev,
+        { role: "assistant", content: assistantMessage },
+      ]);
     } catch (err) {
       console.error("Error:", err);
       setMessages((prev) => [

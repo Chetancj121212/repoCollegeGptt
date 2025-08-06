@@ -29,17 +29,32 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "http://localhost:3000",  # For local development
-        "https://collegegptfrontend-rgk5ca68m-chetan-jharbades-projects.vercel.app",  # Your current Vercel URL
-        "https://collegegptfrontend-*.vercel.app",  # Allow all your Vercel deployments
-        "https://*.vercel.app",   # Allow all Vercel deployments
-        "https://*.netlify.app",  # Allow all Netlify deployments
-        "https://*.onrender.com", # Allow all Render deployments
-        "https://collegegpt-backend.onrender.com",  # Your specific Render backend URL
+        # Local development
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        
+        # Your specific Vercel deployments
+        
+        # Add more Vercel deployment URLs as needed
+        # You can add new ones here when you get new deployment URLs
+        
+        # Production domains (add your custom domain here if you have one)
+        "https://collegegpt.vercel.app",
+        "https://www.collegegpt.vercel.app",
     ],
     allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],  # Added more methods
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD", "PATCH"],
+    allow_headers=[
+        "Accept",
+        "Accept-Language",
+        "Content-Language", 
+        "Content-Type",
+        "Authorization",
+        "X-Requested-With",
+        "Origin",
+        "Access-Control-Request-Method",
+        "Access-Control-Request-Headers",
+    ],
 )
 
 # --- ASTRA DB AND LANGCHAIN SETUP ---
@@ -60,29 +75,57 @@ def get_vector_store():
     )
     return vstore
 
-# Initialize the vector store and retriever
+# Initialize the vector store and retriever with better search parameters
 try:
     vector_store = get_vector_store()
-    retriever = vector_store.as_retriever(search_kwargs={"k": 3}) # Retrieve top 3 relevant documents
+    # Retrieve more documents for better context, with similarity threshold
+    retriever = vector_store.as_retriever(
+        search_type="similarity_score_threshold",
+        search_kwargs={
+            "k": 5,  # Get top 5 relevant documents instead of 3
+            "score_threshold": 0.5  # Only include reasonably relevant results
+        }
+    )
     print("Astra DB connection successful.")
 except Exception as e:
     print(f"Failed to connect to Astra DB: {e}")
-    vector_store = None
-    retriever = None
+    # Fallback to basic retriever if similarity_score_threshold isn't supported
+    try:
+        vector_store = get_vector_store()
+        retriever = vector_store.as_retriever(search_kwargs={"k": 5})
+        print("Astra DB connection successful with basic retriever.")
+    except Exception as e2:
+        print(f"Failed to connect to Astra DB with fallback: {e2}")
+        vector_store = None
+        retriever = None
 
-# Initialize the LLM
-llm = ChatGoogleGenerativeAI(model="gemini-2.5-pro", temperature=0.1,)
+# Initialize the LLM with better settings for educational content
+llm = ChatGoogleGenerativeAI(
+    model="gemini-2.5-pro", 
+    temperature=0.3,  # Slightly more creative while staying factual
+    max_tokens=1000,  # Allow longer responses
+    top_p=0.9,       # Better diversity in responses
+)
 
-# Define the prompt template
+# Define the prompt template for educational assistance
 prompt_template = """
-You are a helpful assistant. Answer the question based only on the following context.
-If you don't know the answer, just say that you don't know, don't try to make up an answer.
+You are CollegeGPT, a helpful educational assistant specializing in college and academic topics. 
+Your goal is to provide clear, informative, and educational responses to help students learn.
+
+Use the following context to answer the question. If the context contains relevant information, 
+explain it clearly and provide helpful details. If you can only find partial information, 
+explain what you know and suggest what additional information might be helpful.
+
+If the context doesn't contain enough information to answer the question, politely explain 
+what you cannot answer and suggest related topics you might be able to help with instead.
 
 Context:
 {context}
 
 Question:
 {question}
+
+Please provide a helpful, educational response:
 """
 prompt = ChatPromptTemplate.from_template(prompt_template)
 
@@ -140,22 +183,27 @@ async def chat(request: ChatRequest, current_user: Optional[dict] = Depends(get_
         return {"error": error_msg}
     
     try:
-        # Enhance the prompt with user context if authenticated
-        user_context = ""
+        # Create a personalized prompt with better context
         if current_user:
             user_name = request.user_name or current_user.get('given_name', 'there')
-            user_context = f"The user's name is {user_name}. "
+            user_context = f"The user's name is {user_name}. Address them personally. "
             print(f"Authenticated user: {user_name}")
+        else:
+            user_context = ""
         
-        # Create a personalized prompt
-        personalized_question = f"{user_context}Question: {request.question}"
+        # Enhanced question with user context
+        if user_context:
+            personalized_question = f"{user_context}Question: {request.question}"
+        else:
+            personalized_question = request.question
+            
         print(f"Processing question: {personalized_question}")
         
         # Get the answer from the RAG chain
         answer = chain.invoke(personalized_question)
         
-        # Add a personalized greeting if this is the first interaction
-        if current_user and request.user_name:
+        # Clean up the answer and add personalization
+        if current_user and request.user_name and not answer.startswith("Hello"):
             answer = f"Hello {request.user_name}! {answer}"
         
         return {
