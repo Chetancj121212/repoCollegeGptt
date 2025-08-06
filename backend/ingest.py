@@ -8,7 +8,7 @@ from langchain_community.document_loaders import (
     UnstructuredPowerPointLoader,
 )
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain_huggingface import HuggingFaceEmbeddings
+from langchain_google_genai import GoogleGenerativeAIEmbeddings
 from langchain_astradb import AstraDBVectorStore
 import pytesseract
 
@@ -125,11 +125,9 @@ def create_vector_store(chunks):
     """
     print("\nCreating and storing in Astra DB vector store...")
     
-    # Initialize the embedding model from Hugging Face (free, no API key required)
-    embeddings = HuggingFaceEmbeddings(
-        model_name="sentence-transformers/all-MiniLM-L6-v2",  # Free, efficient model
-        model_kwargs={'device': 'cpu'},  # Use CPU for better compatibility
-        encode_kwargs={'normalize_embeddings': True}  # Normalize embeddings for better similarity search
+    # Initialize the Google Generative AI embedding model
+    embeddings = GoogleGenerativeAIEmbeddings(
+        model="models/embedding-001"  # Gemini embedding model - uses GOOGLE_API_KEY from environment
     )
     
     # Initialize the Astra DB vector store
@@ -138,12 +136,25 @@ def create_vector_store(chunks):
         collection_name=ASTRA_DB_COLLECTION_NAME,
         api_endpoint=os.getenv("ASTRA_DB_API_ENDPOINT"),
         token=os.getenv("ASTRA_DB_APPLICATION_TOKEN"),
+        batch_size=50,  # Smaller batch size to avoid timeouts
     )
     
-    # Add the document chunks to the vector store
-    # This will embed the chunks and upload them to your cloud database
-    inserted_ids = vstore.add_documents(chunks)
-    print(f"\nSuccessfully inserted {len(inserted_ids)} documents into Astra DB.")
+    # Process documents in smaller batches to avoid timeouts
+    batch_size = 100  # Process 100 chunks at a time
+    total_inserted = 0
+    
+    for i in range(0, len(chunks), batch_size):
+        batch = chunks[i:i + batch_size]
+        try:
+            print(f"Processing batch {i//batch_size + 1}/{(len(chunks) + batch_size - 1)//batch_size} ({len(batch)} chunks)...")
+            inserted_ids = vstore.add_documents(batch)
+            total_inserted += len(inserted_ids)
+            print(f"  ✓ Successfully inserted {len(inserted_ids)} documents")
+        except Exception as e:
+            print(f"  ✗ Error processing batch: {e}")
+            continue
+    
+    print(f"\nSuccessfully inserted {total_inserted} out of {len(chunks)} documents into Astra DB.")
     
     return vstore
 
