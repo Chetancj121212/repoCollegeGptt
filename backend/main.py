@@ -35,6 +35,7 @@ app.add_middleware(
         "https://*.vercel.app",   # Allow all Vercel deployments
         "https://*.netlify.app",  # Allow all Netlify deployments
         "https://*.onrender.com", # Allow all Render deployments
+        "https://collegegpt-backend.onrender.com",  # Your specific Render backend URL
     ],
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],  # Added more methods
