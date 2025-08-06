@@ -107,7 +107,7 @@ class ChatRequest(BaseModel):
 @app.get("/")
 def read_root():
     """A simple endpoint to check if the API is running."""
-    return {"status": "API is running", "timestamp": "2025-08-06", "embeddings": "Hugging Face"}
+    return {"status": "API is running", "timestamp": "2025-08-06", "version": "1.0.1", "deployment": "fresh"}
 
 @app.get("/health")
 def health_check():
