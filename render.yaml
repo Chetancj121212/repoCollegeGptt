@@ -1,0 +1,24 @@
+services:
+  - type: web
+    name: collegegpt-backend
+    runtime: python
+    plan: free
+    buildCommand: pip install -r backend/requirements.txt
+    startCommand: cd backend && uvicorn main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: GOOGLE_API_KEY
+        sync: false
+      - key: ASTRA_DB_API_ENDPOINT
+        sync: false
+      - key: ASTRA_DB_APPLICATION_TOKEN
+        sync: false
+      - key: ASTRA_DB_COLLECTION_NAME
+        value: rag_chatbot_collection
+      - key: CLERK_SECRET_KEY
+        sync: false
+      - key: AZURE_STORAGE_CONNECTION_STRING
+        sync: false
+      - key: AZURE_CONTAINER_NAME
+        sync: false
+      - key: ENVIRONMENT
+        value: production

@@ -1,16 +1,25 @@
-fastapi
-uvicorn[standard]
-gunicorn
-python-dotenv
-langchain
-langchain-google-genai
-azure-storage-blob
-python-pptx
-pytesseract
-langchain-astradb
-pyjwt
-cryptography
-requests
-langchain-community
-pillow
-PyJWT
+# Core FastAPI and server dependencies
+fastapi==0.116.1
+uvicorn[standard]==0.35.0
+gunicorn==23.0.0
+
+# Environment and configuration
+python-dotenv==1.1.1
+
+# LangChain core dependencies (only what's needed)
+langchain-core==0.3.72
+langchain-google-genai==2.1.9
+langchain-astradb==0.6.0
+
+# Document processing (only what's used)
+langchain-community==0.3.27
+python-pptx==1.0.2
+pytesseract==0.3.13
+pillow==11.3.0
+
+# Cloud storage
+azure-storage-blob==12.26.0
+
+# Authentication and security
+pyjwt==2.10.1
+requests==2.32.4

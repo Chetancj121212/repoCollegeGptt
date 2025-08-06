@@ -1,12 +1,8 @@
 import os
-import warnings
 from dotenv import load_dotenv
 
 # Load environment variables FIRST before any other imports
 load_dotenv()
-
-# Suppress specific HuggingFace deprecation warnings
-warnings.filterwarnings("ignore", message=".*encoder_attention_mask.*", category=FutureWarning)
 
 from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
