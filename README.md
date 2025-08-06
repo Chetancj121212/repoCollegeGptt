@@ -1,3 +1,5 @@
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/Chetancj121212/repoCollegeGptt)
+
 # CollegeGPT - AI-Powered Educational Assistant
 
 A full-stack RAG (Retrieval-Augmented Generation) chatbot application designed for educational purposes. The system combines document ingestion, vector search, and AI-powered responses to provide intelligent assistance for college-related queries.
